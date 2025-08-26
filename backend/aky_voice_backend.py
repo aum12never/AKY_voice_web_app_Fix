@@ -14,25 +14,18 @@ def run_tts_generation(
     try:
         genai.configure(api_key=api_key)
 
-        # รวมข้อความทั้งหมดเพื่อส่งให้ API
         full_prompt = f"{style_instructions}. {main_text}"
 
-        # เรียกใช้ฟังก์ชันสำหรับสร้างเสียงโดยเฉพาะ
         response = genai.text_to_speech(
             text=full_prompt,
             voice_name=voice_name,
         )
-
-        # ข้อมูลเสียงจะอยู่ใน attribute 'audio_data'
+        
         audio_buffer = response.audio_data
 
         if audio_buffer:
-            # กำหนด path ของไฟล์ MP3 ที่จะบันทึก
             _, mp3_path = determine_output_paths(output_folder, output_filename)
-
-            # บันทึกเป็น MP3 โดยตรง ไม่ต้องใช้ FFMPEG
             save_binary_file(mp3_path, audio_buffer)
-
             return mp3_path
         else:
             raise ValueError("No audio data received from the API.")
@@ -46,11 +39,11 @@ def determine_output_paths(folder, filename_base):
     mp3_base_path = os.path.join(mp3_folder, filename_base)
     mp3_output = f"{mp3_base_path}.mp3"
     counter = 1
-
+    
     while os.path.exists(mp3_output):
         mp3_output = f"{mp3_base_path} ({counter}).mp3"
         counter += 1
-
+    
     return mp3_output, mp3_output
 
 def save_binary_file(file_name, data):
