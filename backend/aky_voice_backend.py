@@ -1,5 +1,4 @@
 # File: aky_voice_backend.py (The Final, Stable, and Correct Version)
-# File: aky_voice_backend.py (The truly final, simplified version)
 # -*- coding: utf-8 -*-
 import os
 import struct
@@ -16,12 +15,10 @@ def run_tts_generation(
     """
     ฟังก์ชันหลักที่ใช้ Client และ generate_content_stream แบบดั้งเดิม
     แต่มีการ import และสร้างอ็อบเจกต์ที่ถูกต้องสำหรับไลบรารีเวอร์ชันใหม่
-    ฟังก์ชันหลักที่ใช้ API text_to_speech ที่ทันสมัยและเรียบง่าย
     """
     try:
         # --- สร้าง Client object ที่ถูกต้อง ---
         client = Client(api_key=api_key)
-        genai.configure(api_key=api_key)
 
         # --- สร้าง contents object ที่ถูกต้อง ---
         contents = [
@@ -48,38 +45,24 @@ def run_tts_generation(
         )
 
         wav_path, mp3_path = determine_output_paths(output_folder, output_filename)
-        # รวมข้อความทั้งหมดเพื่อส่งให้ API
-        full_prompt = f"{style_instructions}. {main_text}"
 
         # --- ใช้ .generate_content_stream ที่เสถียรเหมือนเดิม ---
         stream = client.models.generate_content_stream(
             model="gemini-2.5-pro-preview-tts",
             contents=contents,
             config=config
-        # เรียกใช้ฟังก์ชันสำหรับสร้างเสียงโดยเฉพาะ
-        response = genai.text_to_speech(
-            text=full_prompt,
-            voice_name=voice_name,
         )
 
         audio_buffer = b''
         for chunk in stream:
             if chunk.candidates and chunk.candidates[0].content and chunk.candidates[0].content.parts and chunk.candidates[0].content.parts[0].inline_data:
                 audio_buffer += chunk.candidates[0].content.parts[0].inline_data.data
-        # ข้อมูลเสียงจะอยู่ใน attribute 'audio_data'
-        audio_buffer = response.audio_data
 
         if audio_buffer:
             final_wav_data = convert_to_wav(audio_buffer, "audio/L16;rate=24000")
             save_binary_file(wav_path, final_wav_data)
             convert_with_ffmpeg(ffmpeg_path, wav_path, mp3_path)
             os.remove(wav_path)
-            # กำหนด path ของไฟล์ MP3 ที่จะบันทึก
-            _, mp3_path = determine_output_paths(output_folder, output_filename)
-
-            # บันทึกเป็น MP3 โดยตรง ไม่ต้องใช้ FFMPEG
-            save_binary_file(mp3_path, audio_buffer)
-
             return mp3_path
         else:
             raise ValueError("No audio data received from the API.")
@@ -103,19 +86,15 @@ def determine_output_paths(folder, filename_base):
     mp3_folder = os.path.join(folder, "MP3_Output")
     os.makedirs(mp3_folder, exist_ok=True)
     file_base_path = os.path.join(folder, filename_base)
-    mp3_folder = folder
     mp3_base_path = os.path.join(mp3_folder, filename_base)
     wav_output = f"{file_base_path}.wav"
     mp3_output = f"{mp3_base_path}.mp3"
     counter = 1
-
     while os.path.exists(mp3_output):
         wav_output = f"{file_base_path} ({counter}).wav"
         mp3_output = f"{mp3_base_path} ({counter}).mp3"
         counter += 1
     return wav_output, mp3_path
-
-    return mp3_output, mp3_output
 
 def save_binary_file(file_name, data):
     with open(file_name, "wb") as f:
